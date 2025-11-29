@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Shield, Lock, Mail, Loader2 } from "lucide-react"
+import { Shield, Lock, User, Loader2 } from "lucide-react"
 
 const loginSchema = z.object({
-  email: z.string().email("请输入有效的邮箱地址"),
-  password: z.string().min(6, "密码至少需要6个字符"),
+  username: z.string().min(1, "Please enter your username"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -20,7 +21,6 @@ type LoginFormValues = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const {
     register,
@@ -32,11 +32,8 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true)
-    setError(null)
 
     try {
-      // TODO: 替换为实际的认证 API 调用
-      // 这里只是示例，您需要根据实际的认证系统进行实现
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -47,15 +44,32 @@ export default function LoginPage() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || "登录失败，请检查您的凭据")
+        const errorMessage = errorData.message || "Login failed. Please check your credentials"
+        
+        toast.error("Login Failed", {
+          description: errorMessage,
+        })
+        throw new Error(errorMessage)
       }
 
       const result = await response.json()
       
-      // 登录成功后重定向到仪表板
-      router.push("/")
+      // Show success toast
+      toast.success("Login Successful", {
+        description: "Redirecting to dashboard...",
+      })
+      
+      // Redirect to dashboard after successful login
+      setTimeout(() => {
+        router.push("/dashboard")
+      }, 500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "登录失败，请稍后重试")
+      // Error toast is already shown above
+      if (!(err instanceof Error && err.message.includes("Login failed"))) {
+        toast.error("Error", {
+          description: "An unexpected error occurred. Please try again later.",
+        })
+      }
     } finally {
       setIsLoading(false)
     }
@@ -64,59 +78,52 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
-        {/* Logo 和标题区域 */}
+        {/* Logo and Title Section */}
         <div className="text-center space-y-2">
           <div className="flex justify-center mb-4">
             <div className="rounded-full bg-primary/10 p-3">
               <Shield className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-foreground">管理员登录</h1>
-          <p className="text-muted-foreground">请输入您的凭据以访问管理面板</p>
+          <h1 className="text-3xl font-bold text-foreground">Admin Login</h1>
+          <p className="text-muted-foreground">Enter your credentials to access the admin panel</p>
         </div>
 
-        {/* 登录表单卡片 */}
+        {/* Login Form Card */}
         <Card className="bg-card border-border shadow-lg">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">欢迎回来</CardTitle>
+            <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
             <CardDescription className="text-center">
-              此页面仅限授权管理员使用
+              This page is restricted to authorized administrators only
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              {/* 错误消息 */}
-              {error && (
-                <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
-
-              {/* 邮箱输入 */}
+              {/* Username Input */}
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-foreground">
-                  邮箱地址
+                <label htmlFor="username" className="text-sm font-medium text-foreground">
+                  Username
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="admin@example.com"
+                    id="username"
+                    type="text"
+                    placeholder="Enter your username"
                     className="pl-9 bg-background"
-                    aria-invalid={errors.email ? "true" : "false"}
-                    {...register("email")}
+                    aria-invalid={errors.username ? "true" : "false"}
+                    {...register("username")}
                   />
                 </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                {errors.username && (
+                  <p className="text-sm text-destructive">{errors.username.message}</p>
                 )}
               </div>
 
-              {/* 密码输入 */}
+              {/* Password Input */}
               <div className="space-y-2">
                 <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  密码
+                  Password
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -134,7 +141,7 @@ export default function LoginPage() {
                 )}
               </div>
 
-              {/* 登录按钮 */}
+              {/* Login Button */}
               <Button
                 type="submit"
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
@@ -143,30 +150,30 @@ export default function LoginPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    登录中...
+                    Signing in...
                   </>
                 ) : (
                   <>
                     <Lock className="mr-2 h-4 w-4" />
-                    登录
+                    Sign In
                   </>
                 )}
               </Button>
             </form>
 
-            {/* 安全提示 */}
+            {/* Security Notice */}
             <div className="mt-6 pt-6 border-t border-border">
               <p className="text-xs text-center text-muted-foreground">
                 <Shield className="inline h-3 w-3 mr-1" />
-                此系统受到安全保护，未经授权的访问将被记录
+                This system is secured. Unauthorized access attempts will be logged.
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* 页脚信息 */}
+        {/* Footer Information */}
         <p className="text-center text-xs text-muted-foreground">
-          如果您是管理员但遇到问题，请联系系统管理员
+          If you are an administrator experiencing issues, please contact the system administrator
         </p>
       </div>
     </div>
