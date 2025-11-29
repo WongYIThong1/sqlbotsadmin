@@ -67,7 +67,25 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
   try {
     const secretKey = getSecretKey()
     const { payload } = await jwtVerify(token, secretKey)
-    return payload as TokenPayload
+    
+    // Validate and convert payload to TokenPayload
+    if (
+      typeof payload === "object" &&
+      payload !== null &&
+      "adminId" in payload &&
+      "username" in payload &&
+      typeof payload.adminId === "string" &&
+      typeof payload.username === "string"
+    ) {
+      return {
+        adminId: payload.adminId,
+        username: payload.username,
+        iat: typeof payload.iat === "number" ? payload.iat : undefined,
+        exp: typeof payload.exp === "number" ? payload.exp : undefined,
+      }
+    }
+    
+    return null
   } catch (error) {
     console.error("Token verification failed:", error)
     return null
