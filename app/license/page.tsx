@@ -358,17 +358,17 @@ export default function LicensePage() {
                           <td className="py-3 px-4 text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-muted-foreground hover:text-foreground"
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-muted-foreground hover:text-foreground"
                                 >
                                   <MoreVertical size={16} />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem
-                                  onClick={() => handleCopyLicense(license.license_key)}
+                              onClick={() => handleCopyLicense(license.license_key)}
                                 >
                                   <Copy className="mr-2 h-4 w-4" />
                                   Copy License Key
@@ -376,7 +376,7 @@ export default function LicensePage() {
                                 <DropdownMenuItem
                                   onClick={() => handleDeleteClick(license.id, license.license_key)}
                                   className="text-destructive focus:text-destructive"
-                                >
+                            >
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   Delete License
                                 </DropdownMenuItem>

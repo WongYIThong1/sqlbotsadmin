@@ -34,6 +34,21 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // First, check and expire any licenses that have passed their expiration date
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/rpc/check_and_expire_licenses`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_SERVICE_ROLE_KEY,
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        },
+      })
+    } catch (error) {
+      // Log but don't fail the request if expiration check fails
+      console.error("Failed to check expired licenses:", error)
+    }
+
     // Use RPC function to get licenses
     const limitNum = limit ? parseInt(limit) : 100
     const offsetNum = offset ? parseInt(offset) : 0
