@@ -2,14 +2,17 @@ import { SignJWT, jwtVerify } from "jose"
 import { NextRequest } from "next/server"
 import { cookies } from "next/headers"
 
-// JWT Secret - should be at least 32 characters
-const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key-change-in-production-min-32-chars"
+// JWT Secret - must be provided via env
+const JWT_SECRET = process.env.JWT_SECRET
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h"
 
 /**
  * Get secret key for JWT operations
  */
 function getSecretKey() {
+  if (!JWT_SECRET) {
+    throw new Error("JWT_SECRET is not set. Please configure it in your environment.")
+  }
   const encoder = new TextEncoder()
   return encoder.encode(JWT_SECRET)
 }

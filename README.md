@@ -35,10 +35,10 @@ Before running the project, you need to configure environment variables. See [EN
 
 ### Required Environment Variables
 
-- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous API key
+- `SUPABASE_URL` - Your Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase **service_role** key (server-only, do not expose to client)
 - `JWT_SECRET` - Secret key for JWT token signing (min 32 characters)
-- `JWT_EXPIRES_IN` - JWT token expiration time (default: 24h)
+- `JWT_EXPIRES_IN` - JWT token expiration time (default: 24h; supports s/m/h/d suffix)
 
 ## Authentication System
 

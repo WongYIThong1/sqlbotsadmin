@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -35,7 +35,6 @@ export default function LoginPage() {
         if (response.ok) {
           const data = await response.json()
           if (data.authenticated) {
-            // Already logged in, redirect to dashboard
             router.push("/dashboard")
             return
           }
@@ -67,32 +66,29 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Include cookies in the request
+        credentials: "include",
         body: JSON.stringify(data),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
         const errorMessage = errorData.message || "Login failed. Please check your credentials"
-        
+
         toast.error("Login Failed", {
           description: errorMessage,
         })
-        return // 直接返回，不再抛出错误
+        return
       }
 
-      const result = await response.json()
-      
-      // Show success toast
+      await response.json()
+
       toast.success("Login Successful", {
         description: "Redirecting to dashboard...",
       })
-      
-      // Use hard redirect to ensure cookie is sent and page reloads
-      // This ensures the cookie is properly set before the middleware checks it
+
+      // Hard redirect to ensure cookie is set before middleware runs
       window.location.href = "/dashboard"
     } catch (err) {
-      // 只有在网络错误或其他未预期的错误时才显示通用错误消息
       toast.error("Error", {
         description: "An unexpected error occurred. Please try again later.",
       })
@@ -101,7 +97,6 @@ export default function LoginPage() {
     }
   }
 
-  // Show loading state while checking authentication
   if (checkingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
