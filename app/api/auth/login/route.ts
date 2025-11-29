@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 
 // Supabase configuration from environment variables
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// TODO: Remove default values and use only environment variables in production
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://kicjyrmadhkozwganhbi.supabase.co"
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpY2p5cm1hZGhrb3p3Z2FuaGJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM1Mjk5MDIsImV4cCI6MjA3OTEwNTkwMn0.uVhc7OyncTsFXoxJP3Wuaqto64oZH1g-N9sRAle2Xec"
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error("Missing Supabase configuration. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.")
@@ -29,6 +30,8 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Attempting login for username:", username)
+    console.log("Using Supabase URL:", SUPABASE_URL)
+    console.log("API Key set:", !!SUPABASE_ANON_KEY, "Length:", SUPABASE_ANON_KEY?.length)
 
     // Call Supabase RPC function to verify admin credentials
     const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_admin_credentials`, {
@@ -62,6 +65,15 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       console.error("Supabase RPC error:", response.status, result)
+      
+      // Provide more specific error message for API key issues
+      if (response.status === 401 && result?.message?.includes("Invalid API key")) {
+        return NextResponse.json(
+          { message: "Invalid API key configured. Please check your Supabase credentials in .env.local file." },
+          { status: 500 }
+        )
+      }
+      
       return NextResponse.json(
         { message: result?.message || result?.error || "Authentication failed" },
         { status: 401 }
