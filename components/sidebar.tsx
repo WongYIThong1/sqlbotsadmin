@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input"
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "User", href: "/user", icon: Users },
   { name: "License", href: "/license", icon: KeyRound },
   { name: "Version", href: "/version", icon: GitBranch },
