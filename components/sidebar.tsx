@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 import {
   LayoutDashboard,
   Users,
@@ -15,8 +16,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  LogOut,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -28,9 +31,68 @@ const navigation = [
   { name: "Team Manage", href: "/team-manage", icon: UsersRound },
 ]
 
+interface AdminUser {
+  id: string
+  username: string
+}
+
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
+  const [admin, setAdmin] = useState<AdminUser | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Fetch admin info on mount
+  useEffect(() => {
+    const fetchAdmin = async () => {
+      try {
+        const response = await fetch("/api/auth/verify", {
+          method: "GET",
+          credentials: "include",
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.authenticated && data.admin) {
+            setAdmin(data.admin)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch admin info:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAdmin()
+  }, [])
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      })
+
+      if (response.ok) {
+        toast.success("Logged out successfully")
+        router.push("/login")
+        router.refresh()
+      } else {
+        toast.error("Logout failed. Please try again.")
+      }
+    } catch (error) {
+      console.error("Logout error:", error)
+      toast.error("An error occurred during logout")
+    }
+  }
+
+  // Get initial from username
+  const getInitial = (username: string) => {
+    return username.charAt(0).toUpperCase()
+  }
 
   return (
     <aside
@@ -84,18 +146,42 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-2">
         <div className={cn("flex items-center gap-3", collapsed && "justify-center")}>
           <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center text-sidebar-foreground text-sm font-medium">
-            A
+            {admin ? getInitial(admin.username) : "A"}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">Admin User</p>
-              <p className="text-xs text-muted-foreground truncate">admin@example.com</p>
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {admin?.username || (loading ? "Loading..." : "Admin User")}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">Administrator</p>
             </div>
           )}
         </div>
+        {!collapsed && (
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="w-full justify-start text-muted-foreground hover:text-foreground"
+            size="sm"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
+        )}
+        {collapsed && (
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            className="w-full justify-center text-muted-foreground hover:text-foreground"
+            size="sm"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </aside>
   )

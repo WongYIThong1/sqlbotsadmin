@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -21,6 +21,34 @@ type LoginFormValues = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
+
+  // Check if already authenticated and redirect to dashboard
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/verify", {
+          method: "GET",
+          credentials: "include",
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.authenticated) {
+            // Already logged in, redirect to dashboard
+            router.push("/dashboard")
+            return
+          }
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error)
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+
+    checkAuth()
+  }, [router])
 
   const {
     register,
@@ -39,6 +67,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // Include cookies in the request
         body: JSON.stringify(data),
       })
 
@@ -49,7 +78,7 @@ export default function LoginPage() {
         toast.error("Login Failed", {
           description: errorMessage,
         })
-        throw new Error(errorMessage)
+        return // 直接返回，不再抛出错误
       }
 
       const result = await response.json()
@@ -59,20 +88,29 @@ export default function LoginPage() {
         description: "Redirecting to dashboard...",
       })
       
-      // Redirect to dashboard after successful login
-      setTimeout(() => {
-        router.push("/dashboard")
-      }, 500)
+      // Use hard redirect to ensure cookie is sent and page reloads
+      // This ensures the cookie is properly set before the middleware checks it
+      window.location.href = "/dashboard"
     } catch (err) {
-      // Error toast is already shown above
-      if (!(err instanceof Error && err.message.includes("Login failed"))) {
-        toast.error("Error", {
-          description: "An unexpected error occurred. Please try again later.",
-        })
-      }
+      // 只有在网络错误或其他未预期的错误时才显示通用错误消息
+      toast.error("Error", {
+        description: "An unexpected error occurred. Please try again later.",
+      })
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Show loading state while checking authentication
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

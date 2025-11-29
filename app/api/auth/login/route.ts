@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { generateToken, AUTH_COOKIE_NAME } from "@/lib/auth"
 
 // Supabase configuration from environment variables
 // TODO: Remove default values and use only environment variables in production
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     console.log("API Key set:", !!SUPABASE_ANON_KEY, "Length:", SUPABASE_ANON_KEY?.length)
 
     // Call Supabase RPC function to verify admin credentials
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_admin_credentials`, {
+    const supabaseResponse = await fetch(`${SUPABASE_URL}/rest/v1/rpc/verify_admin_credentials`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -48,9 +49,9 @@ export async function POST(request: NextRequest) {
       }),
     })
 
-    console.log("Supabase response status:", response.status)
+    console.log("Supabase response status:", supabaseResponse.status)
 
-    const responseText = await response.text()
+    const responseText = await supabaseResponse.text()
     let result
 
     try {
@@ -63,11 +64,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!response.ok) {
-      console.error("Supabase RPC error:", response.status, result)
+    if (!supabaseResponse.ok) {
+      console.error("Supabase RPC error:", supabaseResponse.status, result)
       
       // Provide more specific error message for API key issues
-      if (response.status === 401 && result?.message?.includes("Invalid API key")) {
+      if (supabaseResponse.status === 401 && result?.message?.includes("Invalid API key")) {
         return NextResponse.json(
           { message: "Invalid API key configured. Please check your Supabase credentials in .env.local file." },
           { status: 500 }
@@ -119,8 +120,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Authentication successful
-    // Return success response
-    return NextResponse.json(
+    // Generate JWT token
+    const token = await generateToken(authResult.id, authResult.username)
+
+    // Create response with admin data
+    const response = NextResponse.json(
       {
         message: "Login successful",
         admin: {
@@ -130,6 +134,20 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     )
+
+    // Set HTTP-only cookie with token
+    const isProduction = process.env.NODE_ENV === "production"
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction, // Only send over HTTPS in production
+      sameSite: "lax" as const, // Use 'lax' for better compatibility, especially for redirects
+      maxAge: 60 * 60 * 24, // 24 hours in seconds
+      path: "/",
+    }
+
+    response.cookies.set(AUTH_COOKIE_NAME, token, cookieOptions)
+
+    return response
   } catch (error) {
     console.error("Login error:", error)
     return NextResponse.json(

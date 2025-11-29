@@ -1,3 +1,6 @@
+"use client"
+
+import { ProtectedRoute } from "@/components/protected-route"
 import { Sidebar } from "@/components/sidebar"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { StatsCard } from "@/components/stats-card"
@@ -7,11 +10,12 @@ import { Users, KeyRound, ShieldCheck, Activity } from "lucide-react"
 
 export default function DashboardPage() {
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        <DashboardHeader title="Dashboard" description="Overview of your admin panel" />
-        <div className="p-6 space-y-6">
+    <ProtectedRoute>
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto">
+          <DashboardHeader title="Dashboard" description="Overview of your admin panel" />
+          <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatsCard
               title="Total Users"
@@ -54,6 +58,7 @@ export default function DashboardPage() {
         </div>
       </main>
     </div>
+    </ProtectedRoute>
   )
 }
 
