@@ -32,7 +32,9 @@ interface User {
   username: string
   plan: number
   status: "Active" | "Suspended"
-  number_of_machine: number
+  machine_name_1: string | null
+  machine_name_2: string | null
+  machine_name_3: string | null
   discord_id: string | null
   apikey: string | null
   expires_at: string | null
@@ -375,7 +377,9 @@ export default function UserPage() {
                                 <div>
                                   <p className="text-sm font-medium text-card-foreground">{user.username}</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {user.number_of_machine} machine{user.number_of_machine !== 1 ? "s" : ""}
+                                    {[user.machine_name_1, user.machine_name_2, user.machine_name_3]
+                                      .filter(name => name)
+                                      .length || 0} machine{([user.machine_name_1, user.machine_name_2, user.machine_name_3].filter(name => name).length || 0) !== 1 ? "s" : ""}
                                     {user.expires_at && (
                                       <> • Expires: {new Date(user.expires_at).toLocaleDateString()}</>
                                     )}
@@ -544,8 +548,27 @@ export default function UserPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Number of Machines</Label>
-                <p className="text-sm text-muted-foreground">{selectedUser?.number_of_machine || 0}</p>
+                <Label>Machine Names</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground w-24">Machine 1:</Label>
+                    <code className="flex-1 text-sm font-mono bg-secondary px-3 py-2 rounded border border-border">
+                      {selectedUser?.machine_name_1 || "Not set"}
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground w-24">Machine 2:</Label>
+                    <code className="flex-1 text-sm font-mono bg-secondary px-3 py-2 rounded border border-border">
+                      {selectedUser?.machine_name_2 || "Not set"}
+                    </code>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground w-24">Machine 3:</Label>
+                    <code className="flex-1 text-sm font-mono bg-secondary px-3 py-2 rounded border border-border">
+                      {selectedUser?.machine_name_3 || "Not set"}
+                    </code>
+                  </div>
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label>Discord ID</Label>

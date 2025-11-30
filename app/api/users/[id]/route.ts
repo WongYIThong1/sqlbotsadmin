@@ -12,7 +12,7 @@ function missingConfigResponse() {
 }
 
 async function fetchUserById(id: string) {
-  const response = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(id)}&select=id,username,plan,status,number_of_machine,discord_id,apikey,expires_at,created_at,updated_at&limit=1`, {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${encodeURIComponent(id)}&select=id,username,plan,status,machine_name_1,machine_name_2,machine_name_3,discord_id,apikey,expires_at,created_at,updated_at&limit=1`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -68,9 +68,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   try {
     const { id } = await params
     const body = await request.json()
-    const { plan, status, number_of_machine, discord_id } = body
+    const { plan, status, machine_name_1, machine_name_2, machine_name_3, discord_id } = body
 
-    if (plan === undefined && status === undefined && number_of_machine === undefined && discord_id === undefined) {
+    if (plan === undefined && status === undefined && machine_name_1 === undefined && machine_name_2 === undefined && machine_name_3 === undefined && discord_id === undefined) {
       return NextResponse.json({ message: "Nothing to update" }, { status: 400 })
     }
 
@@ -92,12 +92,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       updatePayload.status = status
     }
 
-    if (number_of_machine !== undefined) {
-      const parsedMachines = Number(number_of_machine)
-      if (!Number.isFinite(parsedMachines) || parsedMachines < 0) {
-        return NextResponse.json({ message: "Number of machines must be a non-negative number" }, { status: 400 })
-      }
-      updatePayload.number_of_machine = parsedMachines
+    // Update machine names
+    if (machine_name_1 !== undefined) {
+      updatePayload.machine_name_1 = machine_name_1 || null
+    }
+
+    if (machine_name_2 !== undefined) {
+      updatePayload.machine_name_2 = machine_name_2 || null
+    }
+
+    if (machine_name_3 !== undefined) {
+      updatePayload.machine_name_3 = machine_name_3 || null
     }
 
     if (discord_id !== undefined) {

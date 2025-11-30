@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     const offset = searchParams.get("offset")
 
     // Build query
-    let query = `${SUPABASE_URL}/rest/v1/users?select=id,username,plan,status,number_of_machine,discord_id,apikey,expires_at,created_at,updated_at&order=created_at.desc`
+    let query = `${SUPABASE_URL}/rest/v1/users?select=id,username,plan,status,machine_name_1,machine_name_2,machine_name_3,discord_id,apikey,expires_at,created_at,updated_at&order=created_at.desc`
 
     // Add filters
     if (status && status !== "All") {
@@ -182,7 +182,9 @@ export async function POST(request: NextRequest) {
         password_hash: passwordHash,
         plan: planNum,
         apikey: apiKey,
-        number_of_machine: 0,
+        machine_name_1: null,
+        machine_name_2: null,
+        machine_name_3: null,
         status: "Active",
         discord_id: discord_id || null,
       }),
