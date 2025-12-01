@@ -7,6 +7,7 @@ const protectedRoutes = [
   "/dashboard",
   "/user",
   "/license",
+  "/machine",
   "/version",
   "/logs",
   "/security-logs",
