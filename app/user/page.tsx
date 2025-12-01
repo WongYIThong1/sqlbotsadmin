@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Search, Plus, MoreVertical, RefreshCw, Loader2, KeyRound, Lock, Eye, Copy, Filter, Trash2 } from "lucide-react"
+import { Search, Plus, MoreVertical, RefreshCw, Loader2, KeyRound, Lock, Eye, Copy, Filter, Trash2, Megaphone, Send } from "lucide-react"
 import { toast } from "sonner"
 
 interface User {
@@ -51,11 +51,19 @@ export default function UserPage() {
   const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false)
   const [isViewDetailsDialogOpen, setIsViewDetailsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false)
+  const [isExtendDialogOpen, setIsExtendDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [newPassword, setNewPassword] = useState<string>("")
   const [confirmPassword, setConfirmPassword] = useState<string>("")
   const [isResettingPassword, setIsResettingPassword] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isSendingNotification, setIsSendingNotification] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState("")
+  const [notificationTarget, setNotificationTarget] = useState<{ id: string | null; username: string } | null>(null)
+  const [extendDays, setExtendDays] = useState<string>("")
+  const [extendTarget, setExtendTarget] = useState<{ id: string | null; username: string } | null>(null)
+  const [isExtending, setIsExtending] = useState(false)
   const [showFullApiKey, setShowFullApiKey] = useState<Record<string, boolean>>({})
 
   // Fetch users from API
@@ -277,6 +285,121 @@ export default function UserPage() {
     return username.charAt(0).toUpperCase()
   }
 
+  const openNotificationDialog = (user?: User) => {
+    if (user) {
+      setNotificationTarget({ id: user.id, username: user.username })
+    } else {
+      setNotificationTarget({ id: null, username: "All Users" })
+    }
+    setNotificationMessage("")
+    setIsNotifyDialogOpen(true)
+  }
+
+  const openExtendDialog = (user?: User) => {
+    if (user) {
+      setExtendTarget({ id: user.id, username: user.username })
+    } else {
+      setExtendTarget({ id: null, username: "All Users" })
+    }
+    setExtendDays("")
+    setIsExtendDialogOpen(true)
+  }
+
+  const handleSendNotification = async () => {
+    if (!notificationTarget || !notificationMessage.trim()) return
+
+    setIsSendingNotification(true)
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          message: notificationMessage.trim(),
+          userId: notificationTarget.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to send notification")
+      }
+
+      const result = await response.json()
+      toast.success("Notification Sent", {
+        description: notificationTarget.id
+          ? `Message delivered to ${notificationTarget.username}.`
+          : `Message delivered to ${result.count || "all"} user(s).`,
+      })
+
+      setIsNotifyDialogOpen(false)
+      setNotificationMessage("")
+      setNotificationTarget(null)
+    } catch (error) {
+      console.error("Failed to send notification:", error)
+      toast.error("Notification Failed", {
+        description: error instanceof Error ? error.message : "An error occurred while sending the notification. Please try again.",
+      })
+    } finally {
+      setIsSendingNotification(false)
+    }
+  }
+
+  const handleExtendExpiry = async () => {
+    if (!extendTarget) return
+
+    const daysNum = Number(extendDays)
+    if (!extendDays || !Number.isInteger(daysNum) || daysNum < 1) {
+      toast.error("Invalid Days", {
+        description: "Please enter a valid positive integer for days.",
+      })
+      return
+    }
+
+    setIsExtending(true)
+    try {
+      const response = await fetch("/api/users/extend-expiry", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          days: daysNum,
+          userId: extendTarget.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to extend expiry")
+      }
+
+      const result = await response.json()
+      toast.success("Expiry Extended", {
+        description: extendTarget.id
+          ? `Extended expiry for ${extendTarget.username} by ${daysNum} day(s).`
+          : `Extended expiry for ${result.updated || "all"} user(s) by ${daysNum} day(s).`,
+      })
+
+      setIsExtendDialogOpen(false)
+      setExtendDays("")
+      setExtendTarget(null)
+
+      // Refresh users to reflect new expiry dates
+      await fetchUsers()
+    } catch (error) {
+      console.error("Failed to extend expiry:", error)
+      toast.error("Extend Failed", {
+        description: error instanceof Error ? error.message : "An error occurred while extending expiry. Please try again.",
+      })
+    } finally {
+      setIsExtending(false)
+    }
+  }
+
   return (
     <ProtectedRoute>
       <div className="flex h-screen bg-background">
@@ -296,6 +419,22 @@ export default function UserPage() {
                   >
                     <RefreshCw size={16} className={`mr-2 ${isLoading ? "animate-spin" : ""}`} />
                     Refresh
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openNotificationDialog()}
+                  >
+                    <Megaphone size={16} className="mr-2" />
+                    Notify All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openExtendDialog()}
+                  >
+                    <KeyRound size={16} className="mr-2" />
+                    Extend All
                   </Button>
                   <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
                     <Plus size={16} className="mr-2" /> Add User
@@ -422,6 +561,18 @@ export default function UserPage() {
                                   >
                                     <Eye className="mr-2 h-4 w-4" />
                                     View More Information
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => openNotificationDialog(user)}
+                                  >
+                                    <Megaphone className="mr-2 h-4 w-4" />
+                                    Send Notification
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => openExtendDialog(user)}
+                                  >
+                                    <KeyRound className="mr-2 h-4 w-4" />
+                                    Extend Expiry
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => handleDeleteClick(user)}
@@ -632,6 +783,119 @@ export default function UserPage() {
                   </>
                 ) : (
                   "Delete"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Send Notification Dialog */}
+        <Dialog open={isNotifyDialogOpen} onOpenChange={setIsNotifyDialogOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Send Notification</DialogTitle>
+              <DialogDescription>
+                {notificationTarget?.id
+                  ? `Send a message to ${notificationTarget.username}.`
+                  : "Send a message to all users."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Message</Label>
+                <textarea
+                  className="min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm text-card-foreground ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="Enter notification message..."
+                  value={notificationMessage}
+                  onChange={(e) => setNotificationMessage(e.target.value)}
+                  disabled={isSendingNotification}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsNotifyDialogOpen(false)
+                  setNotificationMessage("")
+                  setNotificationTarget(null)
+                }}
+                disabled={isSendingNotification}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSendNotification}
+                disabled={isSendingNotification || !notificationMessage.trim()}
+              >
+                {isSendingNotification ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Send
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Extend Expiry Dialog */}
+        <Dialog open={isExtendDialogOpen} onOpenChange={setIsExtendDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Extend Expiry</DialogTitle>
+              <DialogDescription>
+                {extendTarget?.id
+                  ? `Extend expiry for user \"${extendTarget.username}\" by N days.`
+                  : "Extend expiry for all users by N days."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="extend-days">Days to extend</Label>
+                <Input
+                  id="extend-days"
+                  type="number"
+                  min={1}
+                  value={extendDays}
+                  onChange={(e) => setExtendDays(e.target.value)}
+                  placeholder="Enter number of days"
+                  disabled={isExtending}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsExtendDialogOpen(false)
+                  setExtendDays("")
+                  setExtendTarget(null)
+                }}
+                disabled={isExtending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleExtendExpiry}
+                disabled={isExtending || !extendDays.trim()}
+              >
+                {isExtending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Extending...
+                  </>
+                ) : (
+                  "Extend"
                 )}
               </Button>
             </DialogFooter>
